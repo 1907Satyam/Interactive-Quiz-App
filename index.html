@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CODTECH Task 1: Ultimate Quiz</title>
+    <!-- Include Canvas Confetti Library -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #4361ee;
+            --secondary-color: #7209b7;
+            --success-color: #2ec4b6;
+            --error-color: #e63946;
+            --text-color: #2b2d42;
+            --bg-gradient: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            --container-bg: rgba(255, 255, 255, 0.95);
+            --timer-color: #4361ee;
+            --streak-color: #ff9f1c;
+        }
+
+        .dark-mode {
+            --primary-color: #4cc9f0;
+            --text-color: #f8f9fa;
+            --bg-gradient: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+            --container-bg: rgba(30, 30, 40, 0.95);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: var(--bg-gradient);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            transition: background 0.5s ease;
+        }
+
+        /* --- ANIMATIONS --- */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes ripple {
+            to { transform: scale(4); opacity: 0; }
+        }
+
+        @keyframes pulse-fire {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+
+        .fade-in { animation: fadeIn 0.5s ease-out forwards; }
+        .pulse { animation: pulse-fire 1s infinite; }
+
+        .container {
+            background-color: var(--container-bg);
+            padding: 30px;
+            border-radius: 24px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            width: 100%;
+            max-width: 650px;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        /* FEATURE 1: SUN/MOON TOGGLE CONFIGURATION */
+        .theme-switch-wrapper {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            align-items: center;
+            z-index: 10;
+        }
+        .theme-switch {
+            display: inline-block;
+            height: 34px;
+            position: relative;
+            width: 60px;
+        }
+        .theme-switch input { display: none; }
+        .slider {
+            background-color: #87ceeb; /* Sky blue for day */
+            bottom: 0;
+            cursor: pointer;
+            left: 0;
+            position: absolute;
+            right: 0;
+            top: 0;
+            transition: .4s;
+            border-radius: 34px;
+            overflow: hidden;
+        }
+        .slider:before {
+            background-color: #ffdb58; /* Sun yellow */
+            bottom: 4px;
+            content: "";
+            height: 26px;
+            left: 4px;
+            position: absolute;
+            transition: .4s;
+            width: 26px;
+            border-radius: 50%;
+            box-shadow: 0 0 5px rgba(0,0,0,0.2);
+            z-index: 2;
+        }
+        /* Icons inside the slider */
+        .slider .icon {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 16px;
+            transition: opacity 0.3s ease;
+        }
+        .slider .sun { right: 8px; color: #ffdb58; opacity: 0; }
+        .slider .moon { left: 8px; color: #f8f9fa; opacity: 1; }
+
+        input:checked + .slider {
+            background-color: #1a1a2e; /* Dark night */
+        }
+        input:checked + .slider:before {
+            transform: translateX(26px);
+            background-color: #f8f9fa; /* Moon white */
+             box-shadow: inset -3px -2px 5px -2px #8983f7, 0 0 5px rgba(255,255,255,0.5);
+        }
+        input:checked + .slider .sun { opacity: 1; }
+        input:checked + .slider .moon { opacity: 0; }
+
+
+        /* FEATURE: Progress Bar */
+        .progress-container {
+            width: 100%;
+            height: 6px;
+            background-color: rgba(0,0,0,0.1);
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+            width: 0%;
+            transition: width 0.5s cubic-bezier(0.4, 0.0, 0.2, 1);
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 25px;
+            position: relative;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            font-weight: 800;
+            letter-spacing: -1px;
+            margin-top: 15px;
+        }
+
+        .quiz-stats {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(0,0,0,0.05);
+            border-radius: 16px;
+            font-weight: 600;
+            color: var(--text-color);
+        }
+
+        /* FEATURE: Timer & Streak */
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        #timer-val { color: var(--timer-color); min-width: 30px; }
+        .streak-fire { color: #ccc; transition: all 0.3s ease; }
+        .streak-active { color: var(--streak-color); filter: drop-shadow(0 0 5px var(--streak-color)); }
+
+        #question {
+            font-size: 1.35rem;
+            color: var(--text-color);
+            margin-bottom: 25px;
+            font-weight: 700;
+            line-height: 1.4;
+        }
+
+        .btn-grid { display: grid; gap: 12px; }
+
+        /* FEATURE: Ripple Buttons */
+        .btn {
+            position: relative;
+            overflow: hidden;
+            background-color: var(--container-bg);
+            border: 2px solid rgba(0,0,0,0.1);
+            border-radius: 12px;
+            padding: 18px 20px;
+            font-size: 1rem;
+            color: var(--text-color);
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 500;
+        }
+
+        .btn:hover:not([disabled]) {
+            border-color: var(--primary-color);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+        }
+
+        .ripple {
+            position: absolute;
+            border-radius: 50%;
+            transform: scale(0);
+            animation: ripple 0.6s linear;
+            background-color: rgba(255, 255, 255, 0.5);
+        }
+
+        .btn.correct {
+            background-color: var(--success-color) !important;
+            color: white !important;
+            border-color: var(--success-color) !important;
+        }
+        .btn.wrong {
+            background-color: var(--error-color) !important;
+            color: white !important;
+            border-color: var(--error-color) !important;
+        }
+        .btn:disabled { opacity: 0.7; cursor: not-allowed; }
+
+        /* FEATURE: Explanation Box */
+        #explanation {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: rgba(67, 97, 238, 0.1);
+            border-left: 4px solid var(--primary-color);
+            border-radius: 8px;
+            color: var(--text-color);
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        /* FEATURE: Lifeline */
+        .lifeline-area {
+            display: flex;
+            justify-content: flex-start;
+            margin-top: 15px;
+        }
+        .lifeline-btn {
+            background: linear-gradient(135deg, #ff9f1c, #f3722c);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: transform 0.2s;
+            font-weight: bold;
+        }
+        .lifeline-btn:hover:not(:disabled) { transform: scale(1.05); }
+        .lifeline-btn:disabled { filter: grayscale(1); opacity: 0.6; cursor: not-allowed; }
+
+        .controls {
+            margin-top: 25px;
+            display: flex;
+            justify-content: flex-end;
+            height: 50px;
+        }
+
+        #next-btn, #restart-btn {
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            border: none;
+            padding: 14px 40px;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(67, 97, 238, 0.3);
+        }
+        #next-btn:hover, #restart-btn:hover { transform: translateY(-3px) scale(1.02); box-shadow: 0 8px 25px rgba(67, 97, 238, 0.5); }
+
+        .hide { display: none !important; }
+
+        #score-container { text-align: center; padding: 30px 0; }
+        #score-container h2 { font-size: 3rem; color: var(--primary-color); margin: 20px 0; }
+        .final-stats { font-size: 1.2rem; color: var(--text-color); margin-bottom: 30px; }
+    </style>
+</head>
+<body>
+    <!-- Dark Mode Toggle -->
+    <div class="theme-switch-wrapper">
+        <label class="theme-switch" for="checkbox">
+            <input type="checkbox" id="checkbox" />
+            <div class="slider">
+                <span class="icon moon">🌙</span>
+                <span class="icon sun">☀️</span>
+            </div>
+        </label>
+    </div>
+
+    <div class="container">
+        <div class="progress-container">
+            <div class="progress-bar-fill" id="progress-bar"></div>
+        </div>
+
+        <header>
+            <h1>Ultimate JS Quiz</h1>
+        </header>
+
+        <div id="quiz">
+            <!-- Stats Bar: Timer, Score, Streak -->
+            <div class="quiz-stats">
+                <div class="stat-item">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="stroke: var(--timer-color)"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                    <span id="timer-val">15s</span>
+                </div>
+                <div class="stat-item">
+                    <span>Score: <span id="current-score">0</span></span>
+                </div>
+                <div class="stat-item">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" class="streak-fire" id="streak-icon"><path d="M8.5 14.5A2.5 2.5 0 0011 17c1.38 0 2.5-1.12 2.5-2.5s-1.12-2.5-2.5-2.5-2.5 1.12-2.5 2.5z"/><path d="M19.52 10.5c-.72-2.68-2.95-4.63-5.52-4.63-1.49 0-2.94.61-4.04 1.72C8.86 8.69 8.08 10.35 7.99 12.48c-.09-2.12.68-3.8 1.97-4.9 1.1-1.1 2.55-1.71 4.04-1.71 2.57 0 4.8 1.95 5.52 4.63zM12 1C6.48 1 2 5.48 2 11s4.48 10 10 10 10-4.48 10-10S17.52 1 12 1zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>
+                    <span id="streak-val">0</span>
+                </div>
+            </div>
+
+            <div id="question-container" class="fade-in">
+                <h2 id="question">Question Text</h2>
+                <div id="answer-buttons" class="btn-grid"></div>
+                
+                <!-- Lifeline -->
+                <div class="lifeline-area">
+                    <button id="lifeline-5050" class="lifeline-btn">
+                         ✂️ Use 50/50
+                    </button>
+                </div>
+
+                <!-- Explanation Area -->
+                <div id="explanation" class="hide fade-in"></div>
+            </div>
+
+            <div class="controls">
+                <button id="next-btn" class="hide">Next Question ➝</button>
+            </div>
+        </div>
+
+        <div id="score-container" class="hide fade-in">
+            <h2><span id="final-score">0</span> Points</h2>
+            <p class="final-stats">You got <span id="correct-count">0</span> out of <span id="total-questions">5</span> correct!</p>
+            <button id="restart-btn">Play Again</button>
+        </div>
+    </div>
+
+    <script>
+        // --- SOUND EFFECTS ---
+        const sounds = {
+            click: new Audio('https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8c8a73466.mp3?filename=click-button-140881.mp3'),
+            correct: new Audio('https://cdn.pixabay.com/download/audio/2021/08/04/audio_bb630cc098.mp3?filename=success-1-6297.mp3'),
+            wrong: new Audio('https://cdn.pixabay.com/download/audio/2022/03/10/audio_c8c90c5b95.mp3?filename=wrong-answer-129254.mp3')
+        };
+        Object.values(sounds).forEach(s => s.volume = 0.3);
+        const playSound = (type) => sounds[type].play().catch(() => {});
+
+        // --- DATA (Master List) ---
+        const MASTER_QUESTIONS = [
+            {
+                question: "What is the correct way to declare a variable in modern JavaScript?",
+                answers: [
+                    { text: "var myVar;", correct: false },
+                    { text: "variable myVar;", correct: false },
+                    { text: "let myVar;", correct: true },
+                    { text: "dim myVar;", correct: false }
+                ],
+                explanation: "While 'var' still works, 'let' and 'const' are the modern standard introduced in ES6 for better block-scoping."
+            },
+            {
+                question: "Which method is used to add an element to the end of an array?",
+                answers: [
+                    { text: ".push()", correct: true },
+                    { text: ".pop()", correct: false },
+                    { text: ".unshift()", correct: false },
+                    { text: ".append()", correct: false }
+                ],
+                explanation: "The .push() method adds one or more elements to the end of an array and returns the new length."
+            },
+            {
+                question: "What does 'DOM' stand for?",
+                answers: [
+                    { text: "Data Object Model", correct: false },
+                    { text: "Document Object Model", correct: true },
+                    { text: "Digital Ordinance Model", correct: false },
+                    { text: "Desktop Oriented Mode", correct: false }
+                ],
+                explanation: "The Document Object Model (DOM) is the data representation of the objects that comprise the structure and content of a document on the web."
+            },
+            {
+                question: "How do you create a function in JavaScript?",
+                answers: [
+                    { text: "function = myFunction()", correct: false },
+                    { text: "def myFunction()", correct: false },
+                    { text: "function myFunction()", correct: true },
+                    { text: "create myFunction()", correct: false }
+                ],
+                explanation: "The standard way to declare a named function is using the 'function' keyword followed by the name and parentheses."
+            },
+            {
+                question: "Which operator is used for strict equality comparison?",
+                answers: [
+                    { text: "==", correct: false },
+                    { text: "=", correct: false },
+                    { text: "===", correct: true },
+                    { text: "!=", correct: false }
+                ],
+                explanation: "The triple equals (===) checks for both value AND type equality, avoiding unexpected type coercion errors."
+            }
+        ];
+
+        // --- STATE VARIABLES ---
+        let currentQuestions = []; // Array to hold shuffled questions
+        let currentQIndex = 0, score = 0, correctAnswers = 0, streak = 0;
+        let timer, timeLeft;
+        let lifelineUsed = false;
+        const TIME_LIMIT = 15;
+
+        // --- DOM ELEMENTS ---
+        const els = {
+            quiz: document.getElementById('quiz'),
+            score: document.getElementById('score-container'),
+            questionContainer: document.getElementById('question-container'),
+            question: document.getElementById('question'),
+            answers: document.getElementById('answer-buttons'),
+            nextBtn: document.getElementById('next-btn'),
+            curScore: document.getElementById('current-score'),
+            finalScore: document.getElementById('final-score'),
+            correctCount: document.getElementById('correct-count'),
+            totalQs: document.getElementById('total-questions'),
+            progress: document.getElementById('progress-bar'),
+            timer: document.getElementById('timer-val'),
+            streakVal: document.getElementById('streak-val'),
+            streakIcon: document.getElementById('streak-icon'),
+            explanation: document.getElementById('explanation'),
+            lifelineBtn: document.getElementById('lifeline-5050'),
+            themeToggle: document.getElementById('checkbox')
+        };
+
+        // --- INITIALIZATION ---
+        els.themeToggle.addEventListener('change', (e) => {
+            document.body.classList.toggle('dark-mode', e.target.checked);
+        });
+        els.lifelineBtn.addEventListener('click', useLifeline5050);
+        document.getElementById('restart-btn').addEventListener('click', startQuiz);
+        els.nextBtn.addEventListener('click', () => {
+            currentQIndex++;
+            if (currentQIndex < currentQuestions.length) {
+                loadQuestion();
+            } else {
+                endQuiz();
+            }
+        });
+
+        startQuiz();
+
+        // --- CORE FUNCTIONS ---
+
+        // FEATURE 2: Fisher-Yates Shuffle Algorithm
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        function startQuiz() {
+            // Reset state
+            currentQIndex = 0; score = 0; correctAnswers = 0; streak = 0;
+            lifelineUsed = false;
+            els.lifelineBtn.disabled = false;
+            els.curScore.innerText = 0;
+            updateStreakUI();
+
+            // FEATURE 2: Deep copy and shuffle questions AND their answers
+            // We use JSON parse/stringify to create a true deep copy so we don't permanently shuffle the master list's answer order
+            currentQuestions = JSON.parse(JSON.stringify(MASTER_QUESTIONS));
+            shuffleArray(currentQuestions);
+            currentQuestions.forEach(q => shuffleArray(q.answers));
+
+            els.score.classList.add('hide');
+            els.quiz.classList.remove('hide');
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            resetState();
+            els.questionContainer.classList.remove('fade-in');
+            void els.questionContainer.offsetWidth; // Force Reflow
+            els.questionContainer.classList.add('fade-in');
+
+            els.progress.style.width = `${(currentQIndex / currentQuestions.length) * 100}%`;
+
+            const q = currentQuestions[currentQIndex];
+            els.question.innerText = q.question;
+            els.explanation.innerText = q.explanation;
+
+            q.answers.forEach(ans => {
+                const btn = document.createElement('button');
+                btn.innerText = ans.text;
+                btn.classList.add('btn');
+                btn.dataset.correct = ans.correct;
+                btn.addEventListener('click', function(e) {
+                    playSound('click');
+                    createRipple(e, this);
+                    selectAnswer(this);
+                });
+                els.answers.appendChild(btn);
+            });
+
+            startTimer();
+        }
+
+        function selectAnswer(selectedBtn) {
+            clearInterval(timer);
+            const isCorrect = selectedBtn.dataset.correct === "true";
+
+            if (isCorrect) {
+                playSound('correct');
+                streak++;
+                correctAnswers++;
+                const points = streak >= 3 ? 20 : 10;
+                score += points;
+                selectedBtn.classList.add('correct');
+            } else {
+                playSound('wrong');
+                streak = 0;
+                selectedBtn.classList.add('wrong');
+            }
+
+            updateStreakUI();
+            els.curScore.innerText = score;
+            revealAnswers();
+        }
+
+        function revealAnswers() {
+            Array.from(els.answers.children).forEach(btn => {
+                btn.disabled = true;
+                if (btn.dataset.correct === "true") btn.classList.add('correct');
+            });
+            els.explanation.classList.remove('hide');
+            els.nextBtn.classList.remove('hide');
+            els.lifelineBtn.disabled = true;
+        }
+
+        function useLifeline5050() {
+            if (lifelineUsed) return;
+            playSound('click');
+            lifelineUsed = true;
+            els.lifelineBtn.disabled = true;
+
+            const buttons = Array.from(els.answers.children);
+            const incorrectBtns = buttons.filter(btn => btn.dataset.correct === "false");
+            
+            incorrectBtns.sort(() => Math.random() - 0.5).slice(0, 2).forEach(btn => {
+                btn.style.opacity = '0';
+                btn.disabled = true;
+            });
+        }
+
+        function endQuiz() {
+            els.quiz.classList.add('hide');
+            els.score.classList.remove('hide');
+            els.finalScore.innerText = score;
+            els.correctCount.innerText = correctAnswers;
+            els.totalQs.innerText = currentQuestions.length;
+            els.progress.style.width = '100%';
+
+            if (correctAnswers >= 4) {
+                 confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
+            }
+        }
+
+        // --- HELPERS ---
+        function startTimer() {
+            timeLeft = TIME_LIMIT;
+            els.timer.innerText = timeLeft + "s";
+            document.documentElement.style.setProperty('--timer-color', '#4361ee');
+
+            timer = setInterval(() => {
+                timeLeft--;
+                els.timer.innerText = timeLeft + "s";
+                if (timeLeft <= 5) document.documentElement.style.setProperty('--timer-color', '#e63946');
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    playSound('wrong');
+                    streak = 0;
+                    updateStreakUI();
+                    revealAnswers();
+                }
+            }, 1000);
+        }
+
+        function resetState() {
+            clearInterval(timer);
+            els.nextBtn.classList.add('hide');
+            els.explanation.classList.add('hide');
+            els.answers.innerHTML = '';
+            if (!lifelineUsed) els.lifelineBtn.disabled = false;
+        }
+
+        function updateStreakUI() {
+            els.streakVal.innerText = streak;
+            if (streak >= 3) {
+                els.streakIcon.classList.add('streak-active', 'pulse');
+            } else {
+                els.streakIcon.classList.remove('streak-active', 'pulse');
+            }
+        }
+
+        function createRipple(event, button) {
+            const circle = document.createElement("span");
+            const diameter = Math.max(button.clientWidth, button.clientHeight);
+            const radius = diameter / 2;
+            circle.style.width = circle.style.height = `${diameter}px`;
+            circle.style.left = `${event.clientX - button.getBoundingClientRect().left - radius}px`;
+            circle.style.top = `${event.clientY - button.getBoundingClientRect().top - radius}px`;
+            circle.classList.add("ripple");
+            const ripple = button.getElementsByClassName("ripple")[0];
+            if (ripple) ripple.remove();
+            button.appendChild(circle);
+        }
+    </script>
+</body>
+</html>
