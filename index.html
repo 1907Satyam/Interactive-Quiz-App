@@ -3,646 +3,925 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CODTECH Task 1: Ultimate Quiz</title>
-    <!-- Include Canvas Confetti Library -->
+    <title>QuizMaster Elite</title>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        :root {
-            --primary-color: #4361ee;
-            --secondary-color: #7209b7;
-            --success-color: #2ec4b6;
-            --error-color: #e63946;
-            --text-color: #2b2d42;
-            --bg-gradient: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
-            --container-bg: rgba(255, 255, 255, 0.95);
-            --timer-color: #4361ee;
-            --streak-color: #ff9f1c;
-        }
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap');
 
-        .dark-mode {
-            --primary-color: #4cc9f0;
-            --text-color: #f8f9fa;
-            --bg-gradient: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
-            --container-bg: rgba(30, 30, 40, 0.95);
+        :root {
+            --primary: #6C63FF;
+            --secondary: #FF6584;
+            --success: #00D2D3;
+            --warning: #FECA57;
+            --dark: #2F3640;
+            --light: #F5F6FA;
+            --glass: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
         }
 
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Poppins', sans-serif;
         }
 
         body {
-            background: var(--bg-gradient);
             min-height: 100vh;
+            background: linear-gradient(45deg, #1e272e, #485460);
+            color: var(--light);
             display: flex;
             justify-content: center;
             align-items: center;
-            padding: 20px;
-            transition: background 0.5s ease;
+            overflow-x: hidden;
+            position: relative;
         }
 
-        /* --- ANIMATIONS --- */
+        /* Animated Background Blobs */
+        .blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            z-index: 0;
+            opacity: 0.6;
+            animation: float 10s infinite alternate;
+        }
+        .blob-1 { top: -10%; left: -10%; width: 500px; height: 500px; background: var(--primary); }
+        .blob-2 { bottom: -10%; right: -10%; width: 400px; height: 400px; background: var(--secondary); animation-delay: -5s; }
+
+        @keyframes float {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(30px, 50px) scale(1.1); }
+        }
+
+        /* Container & Glassmorphism */
+        .app-container {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            max-width: 800px;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            box-shadow: var(--shadow);
+            padding: 2rem;
+            margin: 20px;
+            min-height: 500px;
+            display: flex;
+            flex-direction: column;
+            transition: height 0.3s ease;
+        }
+
+        /* Screens */
+        .screen {
+            display: none;
+            flex-direction: column;
+            height: 100%;
+            animation: fadeIn 0.5s ease;
+        }
+        .screen.active { display: flex; }
+
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
+            from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        
-        @keyframes ripple {
-            to { transform: scale(4); opacity: 0; }
-        }
 
-        @keyframes pulse-fire {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.2); }
-            100% { transform: scale(1); }
-        }
-
-        .fade-in { animation: fadeIn 0.5s ease-out forwards; }
-        .pulse { animation: pulse-fire 1s infinite; }
-
-        .container {
-            background-color: var(--container-bg);
-            padding: 30px;
-            border-radius: 24px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
-            width: 100%;
-            max-width: 650px;
-            overflow: hidden;
-            backdrop-filter: blur(10px);
-            transition: all 0.3s ease;
-        }
-
-        /* FEATURE 1: SUN/MOON TOGGLE CONFIGURATION */
-        .theme-switch-wrapper {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            display: flex;
-            align-items: center;
-            z-index: 10;
-        }
-        .theme-switch {
-            display: inline-block;
-            height: 34px;
-            position: relative;
-            width: 60px;
-        }
-        .theme-switch input { display: none; }
-        .slider {
-            background-color: #87ceeb; /* Sky blue for day */
-            bottom: 0;
-            cursor: pointer;
-            left: 0;
-            position: absolute;
-            right: 0;
-            top: 0;
-            transition: .4s;
-            border-radius: 34px;
-            overflow: hidden;
-        }
-        .slider:before {
-            background-color: #ffdb58; /* Sun yellow */
-            bottom: 4px;
-            content: "";
-            height: 26px;
-            left: 4px;
-            position: absolute;
-            transition: .4s;
-            width: 26px;
-            border-radius: 50%;
-            box-shadow: 0 0 5px rgba(0,0,0,0.2);
-            z-index: 2;
-        }
-        /* Icons inside the slider */
-        .slider .icon {
-            position: absolute;
-            top: 50%;
-            transform: translateY(-50%);
-            font-size: 16px;
-            transition: opacity 0.3s ease;
-        }
-        .slider .sun { right: 8px; color: #ffdb58; opacity: 0; }
-        .slider .moon { left: 8px; color: #f8f9fa; opacity: 1; }
-
-        input:checked + .slider {
-            background-color: #1a1a2e; /* Dark night */
-        }
-        input:checked + .slider:before {
-            transform: translateX(26px);
-            background-color: #f8f9fa; /* Moon white */
-             box-shadow: inset -3px -2px 5px -2px #8983f7, 0 0 5px rgba(255,255,255,0.5);
-        }
-        input:checked + .slider .sun { opacity: 1; }
-        input:checked + .slider .moon { opacity: 0; }
-
-
-        /* FEATURE: Progress Bar */
-        .progress-container {
-            width: 100%;
-            height: 6px;
-            background-color: rgba(0,0,0,0.1);
-            position: absolute;
-            top: 0;
-            left: 0;
-        }
-        .progress-bar-fill {
-            height: 100%;
-            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
-            width: 0%;
-            transition: width 0.5s cubic-bezier(0.4, 0.0, 0.2, 1);
-        }
-
-        header {
-            text-align: center;
-            margin-bottom: 25px;
-            position: relative;
-        }
-
-        h1 {
-            color: var(--primary-color);
+        /* --- START SCREEN --- */
+        .hero-title {
+            font-size: 3.5rem;
             font-weight: 800;
-            letter-spacing: -1px;
-            margin-top: 15px;
+            text-align: center;
+            background: linear-gradient(to right, #fff, #a5b1c2);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 1rem;
+        }
+        .hero-subtitle {
+            text-align: center;
+            color: #dcdde1;
+            margin-bottom: 3rem;
+            font-size: 1.2rem;
+        }
+        .categories-preview {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 3rem;
+        }
+        .cat-badge {
+            padding: 8px 16px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50px;
+            font-size: 0.9rem;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .btn-start {
+            margin: auto;
+            padding: 18px 60px;
+            font-size: 1.5rem;
+            font-weight: 700;
+            border: none;
+            border-radius: 50px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            color: white;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+        .btn-start:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.3);
         }
 
-        .quiz-stats {
+        /* --- CATEGORY INTERSTITIAL --- */
+        .interstitial-content {
+            text-align: center;
+            margin: auto;
+        }
+        .cat-icon { font-size: 5rem; margin-bottom: 1rem; color: var(--warning); }
+        .next-cat-label { font-size: 1.2rem; text-transform: uppercase; letter-spacing: 2px; opacity: 0.7; }
+        .next-cat-title { font-size: 3rem; font-weight: 800; margin-bottom: 2rem; color: white; }
+
+        /* --- LOADING SPINNER --- */
+        .loader {
+            border: 5px solid rgba(255,255,255,0.1);
+            border-top: 5px solid var(--primary);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* --- QUIZ INTERFACE --- */
+        .quiz-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
-            padding: 15px;
-            background: rgba(0,0,0,0.05);
-            border-radius: 16px;
-            font-weight: 600;
-            color: var(--text-color);
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
         }
-
-        /* FEATURE: Timer & Streak */
-        .stat-item {
+        .timer-badge {
+            background: rgba(255, 50, 50, 0.2);
+            color: #ff6b6b;
+            padding: 8px 16px;
+            border-radius: 12px;
+            font-weight: bold;
             display: flex;
             align-items: center;
             gap: 8px;
         }
-        #timer-val { color: var(--timer-color); min-width: 30px; }
-        .streak-fire { color: #ccc; transition: all 0.3s ease; }
-        .streak-active { color: var(--streak-color); filter: drop-shadow(0 0 5px var(--streak-color)); }
-
-        #question {
-            font-size: 1.35rem;
-            color: var(--text-color);
-            margin-bottom: 25px;
-            font-weight: 700;
-            line-height: 1.4;
-        }
-
-        .btn-grid { display: grid; gap: 12px; }
-
-        /* FEATURE: Ripple Buttons */
-        .btn {
-            position: relative;
-            overflow: hidden;
-            background-color: var(--container-bg);
-            border: 2px solid rgba(0,0,0,0.1);
+        .score-badge {
+            background: rgba(100, 255, 100, 0.2);
+            color: #2ed573;
+            padding: 8px 16px;
             border-radius: 12px;
-            padding: 18px 20px;
-            font-size: 1rem;
-            color: var(--text-color);
-            text-align: left;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            font-weight: 500;
+            font-weight: bold;
         }
-
-        .btn:hover:not([disabled]) {
-            border-color: var(--primary-color);
-            transform: translateY(-3px);
-            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+        
+        /* Question Area */
+        .question-card {
+            background: rgba(0,0,0,0.2);
+            padding: 2rem;
+            border-radius: 16px;
+            margin-bottom: 2rem;
+            position: relative;
+            border-left: 5px solid var(--primary);
+            transition: transform 0.3s ease;
         }
-
-        .ripple {
+        .category-tag {
             position: absolute;
-            border-radius: 50%;
-            transform: scale(0);
-            animation: ripple 0.6s linear;
-            background-color: rgba(255, 255, 255, 0.5);
+            top: -12px;
+            right: 20px;
+            background: var(--primary);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
         }
-
-        .btn.correct {
-            background-color: var(--success-color) !important;
-            color: white !important;
-            border-color: var(--success-color) !important;
-        }
-        .btn.wrong {
-            background-color: var(--error-color) !important;
-            color: white !important;
-            border-color: var(--error-color) !important;
-        }
-        .btn:disabled { opacity: 0.7; cursor: not-allowed; }
-
-        /* FEATURE: Explanation Box */
-        #explanation {
-            margin-top: 20px;
-            padding: 15px;
-            background-color: rgba(67, 97, 238, 0.1);
-            border-left: 4px solid var(--primary-color);
-            border-radius: 8px;
-            color: var(--text-color);
-            font-size: 0.95rem;
+        .question-text {
+            font-size: 1.4rem;
             line-height: 1.5;
+            font-weight: 600;
         }
 
-        /* FEATURE: Lifeline */
+        /* Lifeline Area */
         .lifeline-area {
             display: flex;
-            justify-content: flex-start;
-            margin-top: 15px;
+            justify-content: flex-end;
+            margin-bottom: 15px;
         }
-        .lifeline-btn {
-            background: linear-gradient(135deg, #ff9f1c, #f3722c);
+        .btn-lifeline {
+            background: linear-gradient(135deg, #f0932b, #ffbe76);
             border: none;
-            color: white;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 0.9rem;
+            color: #2F3640;
+            padding: 8px 15px;
+            border-radius: 50px;
+            font-weight: bold;
             cursor: pointer;
             display: flex;
             align-items: center;
-            gap: 5px;
-            transition: transform 0.2s;
-            font-weight: bold;
+            gap: 8px;
+            font-size: 0.9rem;
+            transition: 0.2s;
         }
-        .lifeline-btn:hover:not(:disabled) { transform: scale(1.05); }
-        .lifeline-btn:disabled { filter: grayscale(1); opacity: 0.6; cursor: not-allowed; }
+        .btn-lifeline:hover:not(:disabled) { transform: scale(1.05); box-shadow: 0 0 15px rgba(240, 147, 43, 0.4); }
+        .btn-lifeline:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(1); }
 
-        .controls {
-            margin-top: 25px;
-            display: flex;
-            justify-content: flex-end;
-            height: 50px;
+        /* Options Grid */
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
         }
+        @media (max-width: 600px) { .options-grid { grid-template-columns: 1fr; } }
 
-        #next-btn, #restart-btn {
-            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+        .option-btn {
+            background: rgba(255,255,255,0.05);
+            border: 2px solid transparent;
+            padding: 20px;
+            border-radius: 12px;
             color: white;
-            border: none;
-            padding: 14px 40px;
-            border-radius: 50px;
-            font-size: 1.1rem;
-            font-weight: bold;
+            text-align: left;
             cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(67, 97, 238, 0.3);
+            transition: all 0.2s;
+            position: relative;
+            overflow: hidden;
+            font-size: 1rem;
         }
-        #next-btn:hover, #restart-btn:hover { transform: translateY(-3px) scale(1.02); box-shadow: 0 8px 25px rgba(67, 97, 238, 0.5); }
+        .option-btn:hover:not([disabled]) {
+            background: rgba(255,255,255,0.1);
+            transform: translateY(-2px);
+            border-color: rgba(255,255,255,0.3);
+        }
+        .option-btn.correct {
+            background: rgba(46, 213, 115, 0.2) !important;
+            border-color: #2ed573 !important;
+        }
+        .option-btn.wrong {
+            background: rgba(255, 71, 87, 0.2) !important;
+            border-color: #ff4757 !important;
+            opacity: 0.7;
+        }
+        .option-btn.hidden-opt {
+            visibility: hidden;
+            opacity: 0;
+            pointer-events: none;
+        }
+        .option-btn:disabled { cursor: default; }
 
-        .hide { display: none !important; }
+        /* Progress Bar */
+        .progress-track {
+            width: 100%;
+            height: 6px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 3px;
+            margin-top: 2rem;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: var(--primary);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
 
-        #score-container { text-align: center; padding: 30px 0; }
-        #score-container h2 { font-size: 3rem; color: var(--primary-color); margin: 20px 0; }
-        .final-stats { font-size: 1.2rem; color: var(--text-color); margin-bottom: 30px; }
+        /* --- RESULTS SCREEN --- */
+        .result-content { text-align: center; margin: auto; width: 100%; }
+        .score-circle {
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            border: 10px solid var(--primary);
+            margin: 0 auto 2rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0,0,0,0.2);
+            box-shadow: 0 0 30px rgba(108, 99, 255, 0.3);
+        }
+        .score-big { font-size: 3.5rem; font-weight: 800; line-height: 1; }
+        .score-label { font-size: 1rem; opacity: 0.7; }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 2rem;
+        }
+        .stat-box {
+            background: rgba(255,255,255,0.05);
+            padding: 15px;
+            border-radius: 12px;
+        }
+        .stat-value { font-size: 1.5rem; font-weight: bold; color: var(--success); }
+        .stat-name { font-size: 0.8rem; opacity: 0.7; }
+
+        .btn-restart {
+            padding: 15px 40px;
+            background: white;
+            color: var(--dark);
+            border: none;
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: 0.2s;
+            margin: 5px;
+        }
+        .btn-restart:hover { transform: scale(1.05); background: #f1f2f6; }
+        
+        .btn-secondary {
+            padding: 15px 40px;
+            background: rgba(255,255,255,0.1);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: 0.2s;
+            margin: 5px;
+        }
+        .btn-secondary:hover { background: rgba(255,255,255,0.2); }
+
+        /* --- REVIEW MODE --- */
+        #review-list {
+            text-align: left;
+            max-height: 400px;
+            overflow-y: auto;
+            margin-bottom: 2rem;
+            padding-right: 10px;
+        }
+        /* Custom Scrollbar */
+        #review-list::-webkit-scrollbar { width: 8px; }
+        #review-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
+        
+        .review-item {
+            background: rgba(0,0,0,0.2);
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            border-left: 4px solid #ccc;
+        }
+        .review-item.correct { border-left-color: var(--success); }
+        .review-item.wrong { border-left-color: var(--secondary); }
+        
+        .review-q { font-weight: 600; margin-bottom: 5px; }
+        .review-ans { font-size: 0.9rem; opacity: 0.8; }
+        .text-green { color: var(--success); font-weight: bold; }
+        .text-red { color: var(--secondary); font-weight: bold; }
+
     </style>
 </head>
 <body>
-    <!-- Dark Mode Toggle -->
-    <div class="theme-switch-wrapper">
-        <label class="theme-switch" for="checkbox">
-            <input type="checkbox" id="checkbox" />
-            <div class="slider">
-                <span class="icon moon">🌙</span>
-                <span class="icon sun">☀️</span>
-            </div>
-        </label>
-    </div>
 
-    <div class="container">
-        <div class="progress-container">
-            <div class="progress-bar-fill" id="progress-bar"></div>
-        </div>
+    <!-- Background Elements -->
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
 
-        <header>
-            <h1>Ultimate JS Quiz</h1>
-        </header>
-
-        <div id="quiz">
-            <!-- Stats Bar: Timer, Score, Streak -->
-            <div class="quiz-stats">
-                <div class="stat-item">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="stroke: var(--timer-color)"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                    <span id="timer-val">15s</span>
-                </div>
-                <div class="stat-item">
-                    <span>Score: <span id="current-score">0</span></span>
-                </div>
-                <div class="stat-item">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" class="streak-fire" id="streak-icon"><path d="M8.5 14.5A2.5 2.5 0 0011 17c1.38 0 2.5-1.12 2.5-2.5s-1.12-2.5-2.5-2.5-2.5 1.12-2.5 2.5z"/><path d="M19.52 10.5c-.72-2.68-2.95-4.63-5.52-4.63-1.49 0-2.94.61-4.04 1.72C8.86 8.69 8.08 10.35 7.99 12.48c-.09-2.12.68-3.8 1.97-4.9 1.1-1.1 2.55-1.71 4.04-1.71 2.57 0 4.8 1.95 5.52 4.63zM12 1C6.48 1 2 5.48 2 11s4.48 10 10 10 10-4.48 10-10S17.52 1 12 1zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>
-                    <span id="streak-val">0</span>
-                </div>
-            </div>
-
-            <div id="question-container" class="fade-in">
-                <h2 id="question">Question Text</h2>
-                <div id="answer-buttons" class="btn-grid"></div>
+    <div class="app-container">
+        
+        <!-- 1. START SCREEN -->
+        <div id="start-screen" class="screen active">
+            <div style="margin: auto; width: 100%;">
+                <h1 class="hero-title">QuizMaster<br>Elite</h1>
+                <p class="hero-subtitle">Test your knowledge across 5 unique domains.</p>
                 
-                <!-- Lifeline -->
-                <div class="lifeline-area">
-                    <button id="lifeline-5050" class="lifeline-btn">
-                         ✂️ Use 50/50
-                    </button>
+                <div class="categories-preview">
+                    <span class="cat-badge"><i class="fas fa-briefcase"></i> Business</span>
+                    <span class="cat-badge"><i class="fas fa-microchip"></i> Technology</span>
+                    <span class="cat-badge"><i class="fas fa-futbol"></i> Sports</span>
+                    <span class="cat-badge"><i class="fab fa-js"></i> JavaScript</span>
+                    <span class="cat-badge"><i class="fas fa-globe"></i> General Knowledge</span>
                 </div>
 
-                <!-- Explanation Area -->
-                <div id="explanation" class="hide fade-in"></div>
-            </div>
-
-            <div class="controls">
-                <button id="next-btn" class="hide">Next Question ➝</button>
+                <div style="text-align: center;">
+                    <button class="btn-start" onclick="app.startQuiz()">Start Challenge</button>
+                </div>
             </div>
         </div>
 
-        <div id="score-container" class="hide fade-in">
-            <h2><span id="final-score">0</span> Points</h2>
-            <p class="final-stats">You got <span id="correct-count">0</span> out of <span id="total-questions">5</span> correct!</p>
-            <button id="restart-btn">Play Again</button>
+        <!-- 2. LOADING SCREEN (API SIMULATION) -->
+        <div id="loading-screen" class="screen">
+            <div style="margin: auto; text-align: center;">
+                <div class="loader"></div>
+                <h2>Loading Questions...</h2>
+                <p style="opacity: 0.7;">Fetching data from server</p>
+            </div>
         </div>
+
+        <!-- 3. CATEGORY INTERSTITIAL SCREEN -->
+        <div id="category-screen" class="screen">
+            <div class="interstitial-content">
+                <div id="cat-icon-display" class="cat-icon"><i class="fas fa-rocket"></i></div>
+                <p class="next-cat-label">Next Category</p>
+                <h2 id="cat-title-display" class="next-cat-title">Business</h2>
+                <div style="margin-top: 2rem;">
+                    <button class="btn-restart" id="start-cat-btn">Start Category</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. GAMEPLAY SCREEN -->
+        <div id="game-screen" class="screen">
+            <header class="quiz-header">
+                <div class="timer-badge">
+                    <i class="fas fa-clock"></i> <span id="timer">15s</span>
+                </div>
+                <div>
+                    <span id="streak-indicator" style="margin-right: 15px; color: var(--warning); display: none;">
+                        <i class="fas fa-fire"></i> <span id="streak-count">0</span>
+                    </span>
+                    <div class="score-badge">
+                        Score: <span id="current-score">0</span>
+                    </div>
+                </div>
+            </header>
+
+            <div class="lifeline-area">
+                <button id="btn-5050" class="btn-lifeline" onclick="app.useLifeline5050()">
+                    <i class="fas fa-adjust"></i> 50/50
+                </button>
+            </div>
+
+            <div class="question-card">
+                <span class="category-tag" id="q-category">General</span>
+                <p class="question-text" id="q-text">Loading question...</p>
+            </div>
+
+            <div class="options-grid" id="options-container">
+                <!-- Options injected by JS -->
+            </div>
+
+            <div class="progress-track">
+                <div class="progress-fill" id="progress-bar"></div>
+            </div>
+        </div>
+
+        <!-- 5. RESULTS SCREEN -->
+        <div id="result-screen" class="screen">
+            <div class="result-content">
+                <h2 style="margin-bottom: 2rem; font-size: 2rem;">Quiz Completed!</h2>
+                
+                <div class="score-circle">
+                    <span class="score-big" id="final-score">0</span>
+                    <span class="score-label">Total Score</span>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-box">
+                        <div class="stat-value" id="total-correct">0/25</div>
+                        <div class="stat-name">Correct Answers</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value" id="accuracy">0%</div>
+                        <div class="stat-name">Accuracy</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value" id="best-streak">0</div>
+                        <div class="stat-name">Best Streak</div>
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: center; flex-wrap: wrap;">
+                    <button class="btn-secondary" onclick="app.showReview()">Review Answers</button>
+                    <button class="btn-restart" onclick="app.resetGame()">Play Again</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 6. REVIEW SCREEN -->
+        <div id="review-screen" class="screen">
+            <div style="width: 100%; max-width: 600px; margin: auto;">
+                <h2 style="text-align: center; margin-bottom: 20px;">Review Answers</h2>
+                <div id="review-list">
+                    <!-- Injected via JS -->
+                </div>
+                <div style="text-align: center;">
+                    <button class="btn-restart" onclick="app.showResultScreen()">Back to Result</button>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <script>
-        // --- SOUND EFFECTS ---
-        const sounds = {
-            click: new Audio('https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8c8a73466.mp3?filename=click-button-140881.mp3'),
-            correct: new Audio('https://cdn.pixabay.com/download/audio/2021/08/04/audio_bb630cc098.mp3?filename=success-1-6297.mp3'),
-            wrong: new Audio('https://cdn.pixabay.com/download/audio/2022/03/10/audio_c8c90c5b95.mp3?filename=wrong-answer-129254.mp3')
+        // --- SOUND MANAGER (Visual/Audio Polish) ---
+        // Using reliable CDN sounds for polish
+        const sfx = {
+            correct: new Audio('https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3'),
+            wrong: new Audio('https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3'),
+            click: new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3'),
+            win: new Audio('https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3')
         };
-        Object.values(sounds).forEach(s => s.volume = 0.3);
-        const playSound = (type) => sounds[type].play().catch(() => {});
+        // Lower volume
+        Object.values(sfx).forEach(s => s.volume = 0.4);
 
-        // --- DATA (Master List) ---
-        const MASTER_QUESTIONS = [
+        function playSound(type) {
+            if(sfx[type]) {
+                sfx[type].currentTime = 0;
+                sfx[type].play().catch(e => console.log("Audio play failed (user must interact first):", e));
+            }
+        }
+
+        // --- HARDCODED DATA (FALLBACK) ---
+        const LOCAL_DATA = [
             {
-                question: "What is the correct way to declare a variable in modern JavaScript?",
-                answers: [
-                    { text: "var myVar;", correct: false },
-                    { text: "variable myVar;", correct: false },
-                    { text: "let myVar;", correct: true },
-                    { text: "dim myVar;", correct: false }
-                ],
-                explanation: "While 'var' still works, 'let' and 'const' are the modern standard introduced in ES6 for better block-scoping."
+                name: "Business",
+                icon: "fa-briefcase",
+                questions: [
+                    { q: "What does 'IPO' stand for in the stock market?", o: ["Initial Public Offering", "Internal Policy Output", "International Price Option", "Input Process Order"], a: 0 },
+                    { q: "Who is the founder of Amazon?", o: ["Bill Gates", "Elon Musk", "Jeff Bezos", "Warren Buffett"], a: 2 },
+                    { q: "Which term describes a market where stock prices are falling?", o: ["Bull Market", "Bear Market", "Stag Market", "Lion Market"], a: 1 },
+                    { q: "What is the currency of Japan?", o: ["Yuan", "Won", "Yen", "Dollar"], a: 2 },
+                    { q: "Which company is known for the iPhone?", o: ["Samsung", "Google", "Microsoft", "Apple"], a: 3 }
+                ]
             },
             {
-                question: "Which method is used to add an element to the end of an array?",
-                answers: [
-                    { text: ".push()", correct: true },
-                    { text: ".pop()", correct: false },
-                    { text: ".unshift()", correct: false },
-                    { text: ".append()", correct: false }
-                ],
-                explanation: "The .push() method adds one or more elements to the end of an array and returns the new length."
+                name: "Technologies",
+                icon: "fa-microchip",
+                questions: [
+                    { q: "What does 'CPU' stand for?", o: ["Central Process Unit", "Central Processing Unit", "Computer Personal Unit", "Central Processor Union"], a: 1 },
+                    { q: "Which language is primarily used for Android development?", o: ["Swift", "Kotlin", "PHP", "Ruby"], a: 1 },
+                    { q: "What does 'AI' stand for?", o: ["Artificial Intelligence", "Automated Interface", "Apple Inc.", "Advanced Input"], a: 0 },
+                    { q: "Who is the CEO of Tesla (2024)?", o: ["Tim Cook", "Satya Nadella", "Elon Musk", "Sundar Pichai"], a: 2 },
+                    { q: "Which protocol secures web traffic?", o: ["HTTP", "FTP", "HTTPS", "SMTP"], a: 2 }
+                ]
             },
             {
-                question: "What does 'DOM' stand for?",
-                answers: [
-                    { text: "Data Object Model", correct: false },
-                    { text: "Document Object Model", correct: true },
-                    { text: "Digital Ordinance Model", correct: false },
-                    { text: "Desktop Oriented Mode", correct: false }
-                ],
-                explanation: "The Document Object Model (DOM) is the data representation of the objects that comprise the structure and content of a document on the web."
+                name: "Sports",
+                icon: "fa-futbol",
+                questions: [
+                    { q: "Which country won the FIFA World Cup in 2022?", o: ["France", "Brazil", "Argentina", "Germany"], a: 2 },
+                    { q: "How many players are in a cricket team?", o: ["9", "10", "11", "12"], a: 2 },
+                    { q: "Usain Bolt is famous for which sport?", o: ["Swimming", "Sprinting", "Boxing", "Tennis"], a: 1 },
+                    { q: "What is the length of a marathon?", o: ["26.2 miles", "20 miles", "30 miles", "15 miles"], a: 0 },
+                    { q: "In tennis, what is a score of zero called?", o: ["Nil", "Zero", "Love", "Duck"], a: 2 }
+                ]
             },
             {
-                question: "How do you create a function in JavaScript?",
-                answers: [
-                    { text: "function = myFunction()", correct: false },
-                    { text: "def myFunction()", correct: false },
-                    { text: "function myFunction()", correct: true },
-                    { text: "create myFunction()", correct: false }
-                ],
-                explanation: "The standard way to declare a named function is using the 'function' keyword followed by the name and parentheses."
+                name: "JavaScript",
+                icon: "fa-code",
+                questions: [
+                    { q: "Which keyword declares a constant variable?", o: ["var", "let", "const", "fix"], a: 2 },
+                    { q: "What is 'NaN'?", o: ["Not a Null", "Not a Number", "New and New", "None and None"], a: 1 },
+                    { q: "Which method adds an element to the end of an array?", o: ["pop()", "shift()", "push()", "unshift()"], a: 2 },
+                    { q: "How do you write 'Hello World' in an alert box?", o: ["msg('Hello World')", "alert('Hello World')", "msgBox('Hello World')", "alertBox('Hello World')"], a: 1 },
+                    { q: "What is the result of '2' + 2 in JS?", o: ["4", "22", "NaN", "Error"], a: 1 }
+                ]
             },
             {
-                question: "Which operator is used for strict equality comparison?",
-                answers: [
-                    { text: "==", correct: false },
-                    { text: "=", correct: false },
-                    { text: "===", correct: true },
-                    { text: "!=", correct: false }
-                ],
-                explanation: "The triple equals (===) checks for both value AND type equality, avoiding unexpected type coercion errors."
+                name: "General Knowledge",
+                icon: "fa-globe",
+                questions: [
+                    { q: "What is the largest planet in our solar system?", o: ["Earth", "Mars", "Jupiter", "Saturn"], a: 2 },
+                    { q: "Who wrote 'Romeo and Juliet'?", o: ["Charles Dickens", "William Shakespeare", "Mark Twain", "Jane Austen"], a: 1 },
+                    { q: "What is the chemical symbol for Gold?", o: ["Au", "Ag", "Fe", "Gd"], a: 0 },
+                    { q: "Which is the smallest continent?", o: ["Asia", "Europe", "Australia", "Antarctica"], a: 2 },
+                    { q: "How many bones are in the adult human body?", o: ["206", "208", "201", "210"], a: 0 }
+                ]
             }
         ];
 
-        // --- STATE VARIABLES ---
-        let currentQuestions = []; // Array to hold shuffled questions
-        let currentQIndex = 0, score = 0, correctAnswers = 0, streak = 0;
-        let timer, timeLeft;
-        let lifelineUsed = false;
-        const TIME_LIMIT = 15;
+        // --- GAME ENGINE ---
+        class QuizApp {
+            constructor() {
+                this.screens = {
+                    start: document.getElementById('start-screen'),
+                    loading: document.getElementById('loading-screen'),
+                    category: document.getElementById('category-screen'),
+                    game: document.getElementById('game-screen'),
+                    result: document.getElementById('result-screen'),
+                    review: document.getElementById('review-screen')
+                };
+                
+                this.state = {
+                    catIndex: 0,
+                    qIndex: 0,
+                    score: 0,
+                    streak: 0,
+                    bestStreak: 0,
+                    correctCount: 0,
+                    currentCatQuestions: [],
+                    lifelineUsed: false,
+                    userAnswers: [] // Stores { q: "...", myAns: "...", correctAns: "...", isCorrect: bool }
+                };
 
-        // --- DOM ELEMENTS ---
-        const els = {
-            quiz: document.getElementById('quiz'),
-            score: document.getElementById('score-container'),
-            questionContainer: document.getElementById('question-container'),
-            question: document.getElementById('question'),
-            answers: document.getElementById('answer-buttons'),
-            nextBtn: document.getElementById('next-btn'),
-            curScore: document.getElementById('current-score'),
-            finalScore: document.getElementById('final-score'),
-            correctCount: document.getElementById('correct-count'),
-            totalQs: document.getElementById('total-questions'),
-            progress: document.getElementById('progress-bar'),
-            timer: document.getElementById('timer-val'),
-            streakVal: document.getElementById('streak-val'),
-            streakIcon: document.getElementById('streak-icon'),
-            explanation: document.getElementById('explanation'),
-            lifelineBtn: document.getElementById('lifeline-5050'),
-            themeToggle: document.getElementById('checkbox')
-        };
-
-        // --- INITIALIZATION ---
-        els.themeToggle.addEventListener('change', (e) => {
-            document.body.classList.toggle('dark-mode', e.target.checked);
-        });
-        els.lifelineBtn.addEventListener('click', useLifeline5050);
-        document.getElementById('restart-btn').addEventListener('click', startQuiz);
-        els.nextBtn.addEventListener('click', () => {
-            currentQIndex++;
-            if (currentQIndex < currentQuestions.length) {
-                loadQuestion();
-            } else {
-                endQuiz();
-            }
-        });
-
-        startQuiz();
-
-        // --- CORE FUNCTIONS ---
-
-        // FEATURE 2: Fisher-Yates Shuffle Algorithm
-        function shuffleArray(array) {
-            for (let i = array.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [array[i], array[j]] = [array[j], array[i]];
-            }
-        }
-
-        function startQuiz() {
-            // Reset state
-            currentQIndex = 0; score = 0; correctAnswers = 0; streak = 0;
-            lifelineUsed = false;
-            els.lifelineBtn.disabled = false;
-            els.curScore.innerText = 0;
-            updateStreakUI();
-
-            // FEATURE 2: Deep copy and shuffle questions AND their answers
-            // We use JSON parse/stringify to create a true deep copy so we don't permanently shuffle the master list's answer order
-            currentQuestions = JSON.parse(JSON.stringify(MASTER_QUESTIONS));
-            shuffleArray(currentQuestions);
-            currentQuestions.forEach(q => shuffleArray(q.answers));
-
-            els.score.classList.add('hide');
-            els.quiz.classList.remove('hide');
-            loadQuestion();
-        }
-
-        function loadQuestion() {
-            resetState();
-            els.questionContainer.classList.remove('fade-in');
-            void els.questionContainer.offsetWidth; // Force Reflow
-            els.questionContainer.classList.add('fade-in');
-
-            els.progress.style.width = `${(currentQIndex / currentQuestions.length) * 100}%`;
-
-            const q = currentQuestions[currentQIndex];
-            els.question.innerText = q.question;
-            els.explanation.innerText = q.explanation;
-
-            q.answers.forEach(ans => {
-                const btn = document.createElement('button');
-                btn.innerText = ans.text;
-                btn.classList.add('btn');
-                btn.dataset.correct = ans.correct;
-                btn.addEventListener('click', function(e) {
+                this.timer = null;
+                this.timeLeft = 15;
+                this.quizData = []; // To be loaded from API or Local
+                
+                document.getElementById('start-cat-btn').onclick = () => {
                     playSound('click');
-                    createRipple(e, this);
-                    selectAnswer(this);
+                    this.launchCategory();
+                };
+            }
+
+            // Utilities
+            showScreen(name) {
+                Object.values(this.screens).forEach(s => s.classList.remove('active'));
+                this.screens[name].classList.add('active');
+            }
+
+            shuffle(array) {
+                return array.sort(() => Math.random() - 0.5);
+            }
+
+            // --- API INTEGRATION FEATURE ---
+            async fetchQuestions() {
+                this.showScreen('loading');
+                
+                return new Promise((resolve) => {
+                    // SIMULATION: Simulating network delay
+                    setTimeout(() => {
+                        /* ---------------------------------------------------------
+                           API INTEGRATION INSTRUCTIONS:
+                           To use a real API (like Open Trivia DB), replace the logic below with:
+                           
+                           const API_URL = "https://opentdb.com/api.php?amount=25"; // Enter your API Key/URL here
+                           
+                           fetch(API_URL)
+                             .then(res => res.json())
+                             .then(data => {
+                                // Transform data to match LOCAL_DATA structure
+                                // resolve(transformedData);
+                             });
+                           ---------------------------------------------------------
+                        */
+                       
+                        // For now, we resolve with our robust local data
+                        this.quizData = LOCAL_DATA;
+                        resolve();
+                    }, 1500);
                 });
-                els.answers.appendChild(btn);
-            });
-
-            startTimer();
-        }
-
-        function selectAnswer(selectedBtn) {
-            clearInterval(timer);
-            const isCorrect = selectedBtn.dataset.correct === "true";
-
-            if (isCorrect) {
-                playSound('correct');
-                streak++;
-                correctAnswers++;
-                const points = streak >= 3 ? 20 : 10;
-                score += points;
-                selectedBtn.classList.add('correct');
-            } else {
-                playSound('wrong');
-                streak = 0;
-                selectedBtn.classList.add('wrong');
             }
 
-            updateStreakUI();
-            els.curScore.innerText = score;
-            revealAnswers();
-        }
-
-        function revealAnswers() {
-            Array.from(els.answers.children).forEach(btn => {
-                btn.disabled = true;
-                if (btn.dataset.correct === "true") btn.classList.add('correct');
-            });
-            els.explanation.classList.remove('hide');
-            els.nextBtn.classList.remove('hide');
-            els.lifelineBtn.disabled = true;
-        }
-
-        function useLifeline5050() {
-            if (lifelineUsed) return;
-            playSound('click');
-            lifelineUsed = true;
-            els.lifelineBtn.disabled = true;
-
-            const buttons = Array.from(els.answers.children);
-            const incorrectBtns = buttons.filter(btn => btn.dataset.correct === "false");
-            
-            incorrectBtns.sort(() => Math.random() - 0.5).slice(0, 2).forEach(btn => {
-                btn.style.opacity = '0';
-                btn.disabled = true;
-            });
-        }
-
-        function endQuiz() {
-            els.quiz.classList.add('hide');
-            els.score.classList.remove('hide');
-            els.finalScore.innerText = score;
-            els.correctCount.innerText = correctAnswers;
-            els.totalQs.innerText = currentQuestions.length;
-            els.progress.style.width = '100%';
-
-            if (correctAnswers >= 4) {
-                 confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
+            // Game Flow
+            async startQuiz() {
+                playSound('click');
+                this.state = { 
+                    catIndex: 0, qIndex: 0, score: 0, streak: 0, bestStreak: 0, 
+                    correctCount: 0, currentCatQuestions: [], lifelineUsed: false, userAnswers: [] 
+                };
+                
+                // Fetch data (API Integration point)
+                await this.fetchQuestions();
+                
+                this.updateUI();
+                this.prepareCategory(0);
             }
-        }
 
-        // --- HELPERS ---
-        function startTimer() {
-            timeLeft = TIME_LIMIT;
-            els.timer.innerText = timeLeft + "s";
-            document.documentElement.style.setProperty('--timer-color', '#4361ee');
-
-            timer = setInterval(() => {
-                timeLeft--;
-                els.timer.innerText = timeLeft + "s";
-                if (timeLeft <= 5) document.documentElement.style.setProperty('--timer-color', '#e63946');
-                if (timeLeft <= 0) {
-                    clearInterval(timer);
-                    playSound('wrong');
-                    streak = 0;
-                    updateStreakUI();
-                    revealAnswers();
+            prepareCategory(index) {
+                if (index >= this.quizData.length) {
+                    this.endGame();
+                    return;
                 }
-            }, 1000);
-        }
+                
+                const cat = this.quizData[index];
+                
+                // Shuffle questions for this category
+                this.state.currentCatQuestions = this.shuffle([...cat.questions]);
+                this.state.qIndex = 0;
 
-        function resetState() {
-            clearInterval(timer);
-            els.nextBtn.classList.add('hide');
-            els.explanation.classList.add('hide');
-            els.answers.innerHTML = '';
-            if (!lifelineUsed) els.lifelineBtn.disabled = false;
-        }
+                // Show Interstitial
+                document.getElementById('cat-icon-display').innerHTML = `<i class="fas ${cat.icon}"></i>`;
+                document.getElementById('cat-title-display').innerText = cat.name;
+                this.showScreen('category');
+            }
 
-        function updateStreakUI() {
-            els.streakVal.innerText = streak;
-            if (streak >= 3) {
-                els.streakIcon.classList.add('streak-active', 'pulse');
-            } else {
-                els.streakIcon.classList.remove('streak-active', 'pulse');
+            launchCategory() {
+                this.showScreen('game');
+                this.loadQuestion();
+            }
+
+            loadQuestion() {
+                const qData = this.state.currentCatQuestions[this.state.qIndex];
+                const catName = this.quizData[this.state.catIndex].name;
+
+                document.getElementById('q-category').innerText = catName;
+                document.getElementById('q-text').innerText = qData.q;
+                
+                const optsContainer = document.getElementById('options-container');
+                optsContainer.innerHTML = '';
+                
+                // Reset Lifeline UI (One use per GAME, so enable only if not used)
+                const lifelineBtn = document.getElementById('btn-5050');
+                lifelineBtn.disabled = this.state.lifelineUsed;
+
+                qData.o.forEach((opt, idx) => {
+                    const btn = document.createElement('button');
+                    btn.className = 'option-btn';
+                    btn.innerText = opt;
+                    btn.id = `opt-${idx}`; // ID for lifeline logic
+                    btn.onclick = () => {
+                        playSound('click');
+                        this.handleAnswer(idx, qData.a, btn, qData);
+                    };
+                    optsContainer.appendChild(btn);
+                });
+
+                // Update Progress
+                const progress = ((this.state.qIndex) / 5) * 100;
+                document.getElementById('progress-bar').style.width = `${progress}%`;
+
+                this.startTimer();
+            }
+
+            // --- 50/50 LIFELINE FEATURE ---
+            useLifeline5050() {
+                if(this.state.lifelineUsed) return;
+                
+                playSound('click');
+                this.state.lifelineUsed = true;
+                document.getElementById('btn-5050').disabled = true;
+
+                const currentQ = this.state.currentCatQuestions[this.state.qIndex];
+                const correctIdx = currentQ.a;
+                
+                // Get indices of all wrong answers
+                let wrongIndices = [];
+                currentQ.o.forEach((_, idx) => {
+                    if(idx !== correctIdx) wrongIndices.push(idx);
+                });
+
+                // Shuffle wrong indices and pick 2 to hide
+                wrongIndices = this.shuffle(wrongIndices).slice(0, 2);
+
+                wrongIndices.forEach(idx => {
+                    const btn = document.getElementById(`opt-${idx}`);
+                    if(btn) btn.classList.add('hidden-opt');
+                });
+            }
+
+            startTimer() {
+                clearInterval(this.timer);
+                this.timeLeft = 15;
+                const timerDisplay = document.getElementById('timer');
+                timerDisplay.innerText = this.timeLeft + 's';
+                
+                this.timer = setInterval(() => {
+                    this.timeLeft--;
+                    timerDisplay.innerText = this.timeLeft + 's';
+                    if (this.timeLeft <= 0) {
+                        clearInterval(this.timer);
+                        this.handleTimeOut();
+                    }
+                }, 1000);
+            }
+
+            handleAnswer(selectedIndex, correctIndex, btnElement, qData) {
+                clearInterval(this.timer);
+                const buttons = document.querySelectorAll('.option-btn');
+                buttons.forEach(b => b.disabled = true);
+
+                const isCorrect = selectedIndex === correctIndex;
+                const userAnsText = qData.o[selectedIndex];
+                const correctAnsText = qData.o[correctIndex];
+
+                // Save for Review Mode
+                this.state.userAnswers.push({
+                    q: qData.q,
+                    myAns: userAnsText,
+                    correctAns: correctAnsText,
+                    isCorrect: isCorrect
+                });
+
+                if (isCorrect) {
+                    btnElement.classList.add('correct');
+                    playSound('correct');
+                    this.state.score += 10 + (this.state.streak * 2);
+                    this.state.streak++;
+                    this.state.correctCount++;
+                    if(this.state.streak > this.state.bestStreak) this.state.bestStreak = this.state.streak;
+                    this.triggerConfetti(btnElement);
+                } else {
+                    btnElement.classList.add('wrong');
+                    buttons[correctIndex].classList.add('correct');
+                    playSound('wrong');
+                    this.state.streak = 0;
+                }
+
+                this.updateUI();
+
+                setTimeout(() => this.nextQuestion(), 1500);
+            }
+
+            handleTimeOut() {
+                const buttons = document.querySelectorAll('.option-btn');
+                buttons.forEach(b => b.disabled = true);
+                
+                const currentQ = this.state.currentCatQuestions[this.state.qIndex];
+                buttons[currentQ.a].classList.add('correct');
+                playSound('wrong');
+
+                // Save Timeout as Wrong for Review
+                this.state.userAnswers.push({
+                    q: currentQ.q,
+                    myAns: "Time Out",
+                    correctAns: currentQ.o[currentQ.a],
+                    isCorrect: false
+                });
+                
+                this.state.streak = 0;
+                this.updateUI();
+                setTimeout(() => this.nextQuestion(), 2000);
+            }
+
+            nextQuestion() {
+                this.state.qIndex++;
+                if (this.state.qIndex < 5) {
+                    this.loadQuestion();
+                } else {
+                    // Category Finished
+                    this.state.catIndex++;
+                    this.prepareCategory(this.state.catIndex);
+                }
+            }
+
+            updateUI() {
+                document.getElementById('current-score').innerText = this.state.score;
+                const streakEl = document.getElementById('streak-indicator');
+                if (this.state.streak > 1) {
+                    streakEl.style.display = 'inline-block';
+                    document.getElementById('streak-count').innerText = this.state.streak;
+                } else {
+                    streakEl.style.display = 'none';
+                }
+            }
+
+            endGame() {
+                playSound('win');
+                this.showScreen('result');
+                document.getElementById('final-score').innerText = this.state.score;
+                document.getElementById('total-correct').innerText = `${this.state.correctCount}/25`;
+                document.getElementById('accuracy').innerText = `${Math.round((this.state.correctCount / 25) * 100)}%`;
+                document.getElementById('best-streak').innerText = this.state.bestStreak;
+                
+                confetti({
+                    particleCount: 200,
+                    spread: 100,
+                    origin: { y: 0.6 }
+                });
+            }
+
+            // --- REVIEW MODE FEATURE ---
+            showReview() {
+                playSound('click');
+                this.showScreen('review');
+                const list = document.getElementById('review-list');
+                list.innerHTML = '';
+
+                this.state.userAnswers.forEach((item, index) => {
+                    const div = document.createElement('div');
+                    div.className = `review-item ${item.isCorrect ? 'correct' : 'wrong'}`;
+                    div.innerHTML = `
+                        <p class="review-q">${index + 1}. ${item.q}</p>
+                        <p class="review-ans">Your Answer: <span class="${item.isCorrect ? 'text-green' : 'text-red'}">${item.myAns}</span></p>
+                        ${!item.isCorrect ? `<p class="review-ans">Correct Answer: <span class="text-green">${item.correctAns}</span></p>` : ''}
+                    `;
+                    list.appendChild(div);
+                });
+            }
+
+            showResultScreen() {
+                playSound('click');
+                this.showScreen('result');
+            }
+
+            resetGame() {
+                playSound('click');
+                this.showScreen('start');
+            }
+
+            triggerConfetti(element) {
+                const rect = element.getBoundingClientRect();
+                const x = (rect.left + rect.width / 2) / window.innerWidth;
+                const y = (rect.top + rect.height / 2) / window.innerHeight;
+                
+                confetti({
+                    particleCount: 50,
+                    spread: 60,
+                    origin: { x: x, y: y },
+                    disableForReducedMotion: true
+                });
             }
         }
+        
 
-        function createRipple(event, button) {
-            const circle = document.createElement("span");
-            const diameter = Math.max(button.clientWidth, button.clientHeight);
-            const radius = diameter / 2;
-            circle.style.width = circle.style.height = `${diameter}px`;
-            circle.style.left = `${event.clientX - button.getBoundingClientRect().left - radius}px`;
-            circle.style.top = `${event.clientY - button.getBoundingClientRect().top - radius}px`;
-            circle.classList.add("ripple");
-            const ripple = button.getElementsByClassName("ripple")[0];
-            if (ripple) ripple.remove();
-            button.appendChild(circle);
-        }
+        // Initialize
+        const app = new QuizApp();
+
     </script>
 </body>
 </html>
